@@ -1,0 +1,648 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ระบบคำนวณราคายา - Medicine Calculator</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- SortableJS สำหรับระบบลากสลับแถว -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.15.0/Sortable.min.js"></script>
+    <!-- SheetJS สำหรับ Export Excel -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <!-- html2pdf สำหรับ Export PDF -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    
+    <style>
+        :root {
+            --bg-color: #f8fafc;
+            --card-bg: #ffffff;
+            --primary: #0f766e;
+            --primary-hover: #115e59;
+            --accent: #0284c7;
+            --text-dark: #1e293b;
+            --text-muted: #64748b;
+            --border-color: #e2e8f0;
+        }
+
+        body {
+            font-family: 'Prompt', sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-dark);
+            padding-bottom: 60px;
+        }
+
+        .main-container {
+            max-width: 1000px;
+            margin: 30px auto;
+        }
+
+        .app-card {
+            background: var(--card-bg);
+            border-radius: 20px;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.01);
+            border: 1px solid var(--border-color);
+            overflow: hidden;
+        }
+
+        .header-banner {
+            background: linear-gradient(135deg, #0f766e 0%, #0369a1 100%);
+            color: white;
+            padding: 24px 30px;
+        }
+
+        .header-title {
+            font-weight: 700;
+            font-size: 1.5rem;
+            margin: 0;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .header-subtitle {
+            font-weight: 300;
+            opacity: 0.85;
+            font-size: 0.9rem;
+            margin-top: 4px;
+        }
+
+        .table-responsive {
+            padding: 20px;
+        }
+
+        .custom-table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0 8px;
+        }
+
+        .custom-table th {
+            background-color: #f8fafc;
+            color: var(--text-muted);
+            font-weight: 600;
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            padding: 12px 16px;
+            border: none;
+        }
+
+        .custom-table tbody tr {
+            background-color: #ffffff;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+            transition: transform 0.1s ease, box-shadow 0.1s ease;
+            cursor: default;
+        }
+
+        .custom-table tbody tr:hover {
+            box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+        }
+
+        .custom-table td {
+            padding: 12px 16px;
+            vertical-align: middle;
+            border-top: 1px solid var(--border-color);
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .custom-table td:first-child {
+            border-left: 1px solid var(--border-color);
+            border-top-left-radius: 10px;
+            border-bottom-left-radius: 10px;
+        }
+
+        .custom-table td:last-child {
+            border-right: 1px solid var(--border-color);
+            border-top-right-radius: 10px;
+            border-bottom-right-radius: 10px;
+        }
+
+        .drag-handle {
+            cursor: grab;
+            color: #94a3b8;
+            font-size: 1.1rem;
+            transition: color 0.2s;
+        }
+
+        .drag-handle:hover {
+            color: var(--primary);
+        }
+
+        .sortable-ghost {
+            opacity: 0.4;
+            background-color: #cbd5e1 !important;
+        }
+
+        .img-preview-box {
+            width: 54px;
+            height: 54px;
+            border-radius: 10px;
+            border: 2px dashed #cbd5e1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            cursor: pointer;
+            background-color: #f8fafc;
+            transition: all 0.2s ease;
+        }
+
+        .img-preview-box:hover {
+            border-color: var(--primary);
+            background-color: #f0fdf4;
+        }
+
+        .img-preview-box img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .img-preview-box i {
+            color: #94a3b8;
+            font-size: 1.2rem;
+        }
+
+        .form-control-custom {
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 8px 12px;
+            font-family: 'Prompt', sans-serif;
+            transition: all 0.2s;
+        }
+
+        .form-control-custom:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(15, 118, 110, 0.15);
+            outline: none;
+        }
+
+        .text-sum {
+            font-weight: 600;
+            color: #0f766e;
+            font-size: 1.05rem;
+        }
+
+        .total-card {
+            background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+            color: white;
+            border-radius: 16px;
+            padding: 20px 24px;
+            margin: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+        }
+
+        .total-label {
+            font-size: 1.1rem;
+            font-weight: 500;
+            opacity: 0.9;
+        }
+
+        .total-amount {
+            font-size: 2rem;
+            font-weight: 700;
+            color: #4ade80;
+        }
+
+        .btn-action {
+            border-radius: 10px;
+            padding: 10px 20px;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.2s;
+        }
+
+        .btn-add {
+            background-color: #f0fdf4;
+            color: #166534;
+            border: 1px solid #bbf7d0;
+        }
+
+        .btn-add:hover {
+            background-color: #dcfce7;
+            color: #14532d;
+        }
+
+        .btn-copy {
+            background-color: #0284c7;
+            color: white;
+            border: none;
+        }
+
+        .btn-copy:hover {
+            background-color: #0369a1;
+            color: white;
+        }
+
+        .btn-excel {
+            background-color: #16a34a;
+            color: white;
+            border: none;
+        }
+
+        .btn-excel:hover {
+            background-color: #15803d;
+            color: white;
+        }
+
+        .btn-pdf {
+            background-color: #dc2626;
+            color: white;
+            border: none;
+        }
+
+        .btn-pdf:hover {
+            background-color: #b91c1c;
+            color: white;
+        }
+
+        .btn-delete {
+            color: #ef4444;
+            background: #fef2f2;
+            border: 1px solid #fee2e2;
+            width: 36px;
+            height: 36px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn-delete:hover {
+            background-color: #dc2626;
+            color: white;
+            border-color: #dc2626;
+        }
+
+        .modal-img-preview {
+            max-width: 100%;
+            max-height: 80vh;
+            border-radius: 12px;
+            object-fit: contain;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container main-container">
+    <div class="app-card" id="exportContent">
+        <!-- Banner Header -->
+        <div class="header-banner d-flex justify-content-between align-items-center">
+            <div>
+                <h1 class="header-title">
+                    <i class="fa-solid fa-file-invoice-dollar"></i>
+                    ตารางคำนวณราคายา
+                </h1>
+                <p class="header-subtitle">ระบบคำนวณราคายาพร้อมอัปโหลดรูปภาพ ลากสลับแถว และบันทึกอัตโนมัติ</p>
+            </div>
+            <!-- ปุ่ม Export มุมขวาบน (จะซ่อนตอนดาวน์โหลด PDF เพื่อความสวยงามได้ถ้าต้องการ) -->
+            <div class="d-flex gap-2 export-buttons">
+                <button class="btn btn-action btn-excel" onclick="exportToExcel()" title="ส่งออกเป็น Excel">
+                    <i class="fa-solid fa-file-excel"></i> Excel
+                </button>
+                <button class="btn btn-action btn-pdf" onclick="exportToPDF()" title="ส่งออกเป็น PDF">
+                    <i class="fa-solid fa-file-pdf"></i> PDF
+                </button>
+            </div>
+        </div>
+
+        <!-- Table Content -->
+        <div class="table-responsive">
+            <table class="custom-table" id="medicineTable">
+                <thead>
+                    <tr>
+                        <th style="width: 40px;" class="text-center"><i class="fa-solid fa-grip-vertical"></i></th>
+                        <th style="width: 70px;" class="text-center">รูปภาพ</th>
+                        <th>รายการยา</th>
+                        <th style="width: 150px;" class="text-center">ราคา (บาท)</th>
+                        <th style="width: 130px;" class="text-center">จำนวน</th>
+                        <th style="width: 160px;" class="text-end">รวม (บาท)</th>
+                        <th style="width: 50px;"></th>
+                    </tr>
+                </thead>
+                <tbody id="tableBody">
+                    <!-- Rows generated by JS -->
+                </tbody>
+            </table>
+
+            <!-- Controls -->
+            <div class="d-flex justify-content-between align-items-center mt-3 px-2">
+                <button class="btn btn-action btn-add" onclick="addRow()">
+                    <i class="fa-solid fa-plus"></i> เพิ่มรายการยา
+                </button>
+                <div class="d-flex gap-2">
+                    <button class="btn btn-action btn-outline-secondary" onclick="resetDefaults()">
+                        <i class="fa-solid fa-rotate-left"></i> รีเซ็ตค่าเริ่มต้น
+                    </button>
+                    <button class="btn btn-action btn-copy" onclick="copySummary()">
+                        <i class="fa-solid fa-copy"></i> คัดลอกสรุปรายการ
+                    </button>
+                </div>
+            </div>
+
+            <!-- Grand Total Card -->
+            <div class="total-card">
+                <div class="total-label">
+                    <i class="fa-solid fa-calculator me-2"></i> ราคารวมทั้งหมดสุทธิ
+                </div>
+                <div class="total-amount" id="grandTotal">0 ฿</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal for Image Preview -->
+<div class="modal fade" id="imageModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered modal-lg">
+    <div class="modal-content" style="border-radius: 16px; overflow: hidden;">
+      <div class="modal-header border-0">
+        <h5 class="modal-title fw-bold" id="modalTitle">รูปภาพรายการยา</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body text-center p-4">
+        <img id="modalImage" src="" class="modal-img-preview" alt="Medicine Image">
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+    const defaultData = [
+        { name: 'ยาแก้ปวดรุนแรง', price: 500, qty: '', img: '' },
+        { name: 'ยาแก้ปวด', price: 350, qty: 100, img: '' },
+        { name: 'ยาแก้ช้ำใน', price: 300, qty: '', img: '' },
+        { name: 'ยากระตุ้นหัวใจ', price: '', qty: '', img: '' },
+        { name: 'เข็มกระตุ้นม้า', price: '', qty: '', img: '' },
+        { name: 'ยาจีน', price: '', qty: '', img: '' }
+    ];
+
+    let items = [];
+
+    function init() {
+        const saved = localStorage.getItem('medicine_data_v4');
+        if (saved) {
+            try {
+                items = JSON.parse(saved);
+            } catch(e) {
+                items = [...defaultData];
+            }
+        } else {
+            items = [...defaultData];
+        }
+        render();
+        initSortable();
+    }
+
+    function render() {
+        const tbody = document.getElementById('tableBody');
+        tbody.innerHTML = '';
+
+        items.forEach((item, index) => {
+            const row = document.createElement('tr');
+            row.setAttribute('data-index', index);
+            
+            const total = (parseFloat(item.qty) || 0) * (parseFloat(item.price) || 0);
+
+            row.innerHTML = `
+                <td class="text-center">
+                    <i class="fa-solid fa-grip-vertical drag-handle" title="คลิกค้างเพื่อลากเลื่อนแถว"></i>
+                </td>
+                <td class="text-center">
+                    <div class="img-preview-box" onclick="handleImageClick(${index})">
+                        ${item.img ? `<img src="${item.img}" alt="ยา">` : `<i class="fa-solid fa-camera"></i>`}
+                    </div>
+                    <input type="file" id="fileInput-${index}" accept="image/*" style="display:none;" onchange="uploadImage(${index}, event)">
+                </td>
+                <td>
+                    <input type="text" class="form-control form-control-custom fw-medium" 
+                        value="${item.name || ''}" 
+                        placeholder="ชื่อรายการยา" 
+                        oninput="updateItemData(${index}, 'name', this.value)">
+                </td>
+                <td>
+                    <input type="number" class="form-control form-control-custom text-center" 
+                        value="${item.price !== '' ? item.price : ''}" 
+                        placeholder="-" 
+                        oninput="updateItemData(${index}, 'price', this.value)">
+                </td>
+                <td>
+                    <input type="number" class="form-control form-control-custom text-center" 
+                        value="${item.qty !== '' ? item.qty : ''}" 
+                        placeholder="-" 
+                        oninput="updateItemData(${index}, 'qty', this.value)">
+                </td>
+                <td class="text-end text-sum">
+                    ${total > 0 ? total.toLocaleString('th-TH') : '-'}
+                </td>
+                <td class="text-center">
+                    <button class="btn-delete" onclick="removeItem(${index})" title="ลบรายการ">
+                        <i class="fa-solid fa-trash-can"></i>
+                    </button>
+                </td>
+            `;
+            tbody.appendChild(row);
+        });
+
+        calculateGrandTotal();
+        saveData();
+    }
+
+    function initSortable() {
+        const tbody = document.getElementById('tableBody');
+        Sortable.create(tbody, {
+            handle: '.drag-handle',
+            animation: 150,
+            ghostClass: 'sortable-ghost',
+            onEnd: function () {
+                const newItems = [];
+                const rows = tbody.querySelectorAll('tr');
+                rows.forEach(row => {
+                    const oldIndex = row.getAttribute('data-index');
+                    newItems.push(items[oldIndex]);
+                });
+                items = newItems;
+                render();
+            }
+        });
+    }
+
+    function updateItemData(index, key, value) {
+        items[index][key] = value;
+        
+        const total = (parseFloat(items[index].qty) || 0) * (parseFloat(items[index].price) || 0);
+        const rows = document.querySelectorAll('#tableBody tr');
+        if (rows[index]) {
+            const sumCell = rows[index].querySelector('.text-sum');
+            if (sumCell) {
+                sumCell.textContent = total > 0 ? total.toLocaleString('th-TH') : '-';
+            }
+        }
+
+        calculateGrandTotal();
+        saveData();
+    }
+
+    function calculateGrandTotal() {
+        let grandTotal = 0;
+        items.forEach(item => {
+            const q = parseFloat(item.qty) || 0;
+            const p = parseFloat(item.price) || 0;
+            grandTotal += q * p;
+        });
+        document.getElementById('grandTotal').textContent = grandTotal.toLocaleString('th-TH') + ' ฿';
+    }
+
+    function handleImageClick(index) {
+        if (items[index].img) {
+            document.getElementById('modalImage').src = items[index].img;
+            document.getElementById('modalTitle').textContent = items[index].name || 'รูปภาพรายการยา';
+            const modal = new bootstrap.Modal(document.getElementById('imageModal'));
+            modal.show();
+        } else {
+            document.getElementById(`fileInput-${index}`).click();
+        }
+    }
+
+    function uploadImage(index, event) {
+        const file = event.target.files[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                items[index].img = e.target.result;
+                render();
+            };
+            reader.readAsDataURL(file);
+        }
+    }
+
+    function addRow() {
+        items.push({ name: '', price: '', qty: '', img: '' });
+        render();
+    }
+
+    function removeItem(index) {
+        items.splice(index, 1);
+        render();
+    }
+
+    function resetDefaults() {
+        if (confirm('คุณต้องการรีเซ็ตรายการยาทั้งหมดเป็นค่าเริ่มต้นใช่หรือไม่?')) {
+            items = JSON.parse(JSON.stringify(defaultData));
+            render();
+        }
+    }
+
+    function saveData() {
+        localStorage.setItem('medicine_data_v4', JSON.stringify(items));
+    }
+
+    function copySummary() {
+        let text = "📋 **สรุปรายการสั่งซื้อยา**\n------------------\n";
+        let grandTotal = 0;
+        let count = 0;
+
+        items.forEach(item => {
+            const q = parseFloat(item.qty) || 0;
+            const p = parseFloat(item.price) || 0;
+            const total = q * p;
+
+            if (q > 0) {
+                count++;
+                text += `${count}. ${item.name || 'ไม่ระบุชื่อ'}: ราคา ${p.toLocaleString()} x จำนวน ${q.toLocaleString()} = ${total.toLocaleString()} บาท\n`;
+                grandTotal += total;
+            }
+        });
+
+        if (count === 0) {
+            alert('ยังไม่มีรายการยาที่มีการระบุจำนวนครับ');
+            return;
+        }
+
+        text += `------------------\n💰 **ราคารวมสุทธิ: ${grandTotal.toLocaleString()} บาท**`;
+
+        navigator.clipboard.writeText(text).then(() => {
+            alert('คัดลอกสรุปรายการเรียบร้อยแล้ว!');
+        }).catch(err => {
+            alert('ไม่สามารถคัดลอกได้: ' + err);
+        });
+    }
+
+    // ฟังก์ชัน Export เป็นไฟล์ Excel (.xlsx)
+    function exportToExcel() {
+        let excelData = [{
+            "ลำดับ": "ลำดับ",
+            "รายการยา": "รายการยา",
+            "ราคาต่อหน่วย (บาท)": "ราคาต่อหน่วย (บาท)",
+            "จำนวน": "จำนวน",
+            "ราคารวม (บาท)": "ราคารวม (บาท)"
+        }];
+
+        let grandTotal = 0;
+        items.forEach((item, index) => {
+            const p = parseFloat(item.price) || 0;
+            const q = parseFloat(item.qty) || 0;
+            const total = p * q;
+            grandTotal += total;
+
+            excelData.push({
+                "ลำดับ": index + 1,
+                "รายการยา": item.name || '-',
+                "ราคาต่อหน่วย (บาท)": p > 0 ? p : '',
+                "จำนวน": q > 0 ? q : '',
+                "ราคารวม (บาท)": total > 0 ? total : ''
+            });
+        });
+
+        // เพิ่มแถวราคารวมสุทธิ
+        excelData.push({
+            "ลำดับ": "",
+            "รายการยา": "ราคารวมทั้งหมดสุทธิ",
+            "ราคาต่อหน่วย (บาท)": "",
+            "จำนวน": "",
+            "ราคารวม (บาท)": grandTotal
+        });
+
+        const worksheet = XLSX.utils.json_to_sheet(excelData, { skipHeader: true });
+        const workbook = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(workbook, worksheet, "Medicine List");
+
+        // ดาวน์โหลดไฟล์ Excel
+        XLSX.writeFile(workbook, "Medicine_Price_Calculation.xlsx");
+    }
+
+    // ฟังก์ชัน Export เป็นไฟล์ PDF
+    function exportToPDF() {
+        const element = document.getElementById('exportContent');
+        const exportButtons = document.querySelector('.export-buttons');
+        
+        // ซ่อนปุ่ม Export ชั่วคราวตอนแปลงเป็น PDF เพื่อความสะอาด
+        exportButtons.style.display = 'none';
+
+        const opt = {
+            margin:       10,
+            filename:     'Medicine_Price_Calculation.pdf',
+            image:        { type: 'jpeg', quality: 0.98 },
+            html2canvas:  { scale: 2, useCORS: true },
+            jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
+        };
+
+        html2pdf().from(element).set(opt).save().then(() => {
+            // แสดงปุ่ม Export กลับมาเหมือนเดิม
+            exportButtons.style.display = 'flex';
+        });
+    }
+
+    init();
+</script>
+</body>
+</html>
